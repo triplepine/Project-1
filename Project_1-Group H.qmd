@@ -1,0 +1,27 @@
+---
+title: "Project 1"
+format: html
+editor: visual
+---
+
+## Data Processing
+### Parse the data read in
+
+
+
+### Write functions to do the both pieces
+
+
+### Creating wrapper function
+
+
+
+### Combine two datasets as one object
+
+
+
+## Writing a Generic Function for Summarizing
+
+
+
+## Put Together
