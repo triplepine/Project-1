@@ -1,11 +1,41 @@
 ---
-title: "Project 1"
+title: "Project 1 - Group H"
 format: html
 editor: visual
+editor_options: 
+  chunk_output_type: console
 ---
 
 ## Data Processing
-### Parse the data read in
+
+```{r}
+library(readr)
+library(tidyverse)
+library(lubridate)
+
+# Read in one section of the data 
+EDU01a_part <- read_csv("EDU01a.csv") |>
+   select(Area_name,STCOU,ends_with("D")) |>
+   rename(area_name=Area_name) |>
+# Covert into long format
+  pivot_longer(cols=3:12,
+               names_to = "enrollment",
+               values_to = "number") |>
+# pull out the year and convert the year into a numeric value
+# create a new variable with first 3 char and following 4 digits
+  mutate(year=ifelse(as.numeric(substr(enrollment,8,9))>25,as.numeric(substr(enrollment,8,9))+1900,as.numeric(substr(enrollment,8,9))+2000),
+        measurement=substr(enrollment,1,7)) |>
+  collect()
+
+# create two data sets with only non-county data/ only county level data
+#county_level <- EDU01a_part |>
+#  filter(area_name contains ",")) 
+
+#non_county <- EDU01a_part |>
+#  filter(area_name,',')==1) |>
+#  collect()
+
+```
 
 
 
