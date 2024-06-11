@@ -13,38 +13,36 @@ library(readr)
 library(tidyverse)
 library(lubridate)
 
-# Read in one section of the data 
+# Step 1 through 3 - Read in one section of the data 
 EDU01a_part <- read_csv("EDU01a.csv") |>
    select(Area_name,STCOU,ends_with("D")) |>
    rename(area_name=Area_name) |>
-# Covert into long format
+  # Covert into long format
   pivot_longer(cols=3:12,
                names_to = "enrollment",
                values_to = "number") |>
-# pull out the year and convert the year into a numeric value
-# create a new variable with first 3 char and following 4 digits
-  mutate(year=ifelse(as.numeric(substr(enrollment,8,9))>25,as.numeric(substr(enrollment,8,9))+1900,as.numeric(substr(enrollment,8,9))+2000),
-        measurement=substr(enrollment,1,7)) |>
+  # pull out the year and convert the year into a numeric value
+  # create a new variable with first 3 char and following 4 digits
+  mutate(year = ifelse(as.numeric(substr(enrollment,8,9))>25,as.numeric(substr(enrollment,8,9))+1900,as.numeric(substr(enrollment,8,9))+2000),
+        measurement = substr(enrollment,1,7)) |>
   collect()
 
-# create two data sets with only non-county data/ only county level data
-
+# Step 4 - create two data sets with only non-county data/ only county level data
 county_matching <- grep(pattern=", \\w\\w", EDU01a_part$area_name) 
 county <- EDU01a_part[county_matching,]
 non_county <- EDU01a_part[-county_matching,]
   
-# add a class to the county_only data called county
+# Step 4 - add a class to the county_only data called county
 class(county) <-c("county",class(county))
 
-# add a class to the non-county level data called state
+# Step 4 - add a class to the non-county level data called state
 class(non_county) <-c("state",class(non_county))
 
-# county-- create a new variable describe the state
+# Step 5 - create a new variable describe the state
 county <-county |> 
   mutate(state=substr(area_name,nchar(county$area_name)-1,nchar(area_name)))
 
-# non-county --create a new variable called division
-# Define lists of divisions
+# Step 6 - non-county, Define lists of divisions
 new_england <- c("Connecticut", "Maine", "Massachusetts", "New Hampshire", "Rhode Island", "Vermont")
 middle_atlantic <- c("New Jersey", "New York", "Pennsylvania")
 east_north_central <- c("Illinois", "Indiana", "Michigan", "Ohio", "Wisconsin")
@@ -55,7 +53,7 @@ west_south_central <- c("Arkansas", "Louisiana", "Oklahoma", "Texas")
 mountain <- c("Arizona", "Colorado", "Idaho", "Montana", "Nevada", "New Mexico", "Utah", "Wyoming")
 pacific <- c("Alaska", "California", "Hawaii", "Oregon", "Washington")
 
-# Convert the lists to uppercase
+# Step 6 - Convert the lists to uppercase
 new_england <- toupper(new_england)
 middle_atlantic <- toupper(middle_atlantic)
 east_north_central <- toupper(east_north_central)
@@ -66,7 +64,7 @@ west_south_central <- toupper(west_south_central)
 mountain <- toupper(mountain)
 pacific <- toupper(pacific)
 
-# Assuming non_county is your data frame, convert the area_name column to uppercase
+# Step 6 -Assuming non_county is your data frame, convert the area_name column to uppercase
 non_county <- non_county |>
   mutate(division = case_when(
     area_name %in% new_england ~ "New England",
@@ -82,19 +80,175 @@ non_county <- non_county |>
   ))
 ```
 
-### Write functions to do the both pieces
+### Functions for all data processing steps
+
+#### function for steps 1 & 2
+```{r}
+# create function with the file path and specified column as inputs
+process_data_step_1_2 <- function(file_path, input_col = "enrollment"){
+  
+  # load input data
+  processed_data <- read_csv(file_path) |>
+  
+    # select specified columns
+    select(Area_name, STCOU, ends_with("D")) |>
+    
+    # rename Area_Name
+    rename(area_name = Area_name) |>
+    
+    # put the columns ending in D in long format, under "enrollment"
+    pivot_longer(cols = 3:12,
+                 names_to = input_col,
+                 values_to = "number")
+  
+  # return output
+  return(processed_data)
+}
+
+# populate tibble with results
+step_1_2_output <- process_data_step_1_2("https://www4.stat.ncsu.edu/~online/datasets/EDU01b.csv", input_col = "enrollment")
+```
+
+#### function for step 3
+```{r}
+# create function to extract year and measurements
+process_data_step_3 <- function(input_tibble){
+  
+  # load input data
+  processed_data <- input_tibble |>
+    
+    # Extract the year and measurement
+    mutate(
+      # extract year from the last 2 digits, add 1900 or 2000 to return a proper value
+      year = ifelse(as.numeric(substr(enrollment,8,9))>25,as.numeric(substr(enrollment,8,9))+1900,as.numeric(substr(enrollment,8,9))+2000),
+      # grab measurement value from the first 7 characters
+      measurement = substr(enrollment,1,7)
+    )
+
+  # return output
+  return(processed_data)
+}
+
+# output data
+step_3_output <- process_data_step_3(input_tibble = step_1_2_output)
+```
+
+#### function for step 5
+```{r}
+# function to determine state for COUNTY data
+process_data_step_5 <- function(input_tibble){
+  
+  # load input data
+  processed_data <- input_tibble |>
+    # create a new field with the state
+    mutate(state = substr(area_name, nchar(county$area_name)-1, nchar(area_name)))
+    
+  # return output
+  return(processed_data)
+}
+```
+
+#### function for step 6
+```{r}
+# function to determine classification for NON-COUNTY data
+process_data_step_6 <- function(input_tibble){
+  
+  # define divisions and uppercase everything
+  new_england <- toupper(c("Connecticut", "Maine", "Massachusetts", "New Hampshire", "Rhode Island", "Vermont"))
+  middle_atlantic <- toupper(c("New Jersey", "New York", "Pennsylvania"))
+  east_north_central <- toupper(c("Illinois", "Indiana", "Michigan", "Ohio", "Wisconsin"))
+  west_north_central <- toupper(c("Iowa", "Kansas", "Minnesota", "Missouri", "Nebraska", "North Dakota", "South Dakota"))
+  south_atlantic <- toupper(c("Delaware", "Florida", "Georgia", "Maryland", "North Carolina", "South Carolina", "Virginia", "Washington, D.C.", "West Virginia"))
+  east_south_central <- toupper(c("Alabama", "Kentucky", "Mississippi", "Tennessee"))
+  west_south_central <- toupper(c("Arkansas", "Louisiana", "Oklahoma", "Texas"))
+  mountain <- toupper(c("Arizona", "Colorado", "Idaho", "Montana", "Nevada", "New Mexico", "Utah", "Wyoming"))
+  pacific <- toupper(c("Alaska", "California", "Hawaii", "Oregon", "Washington"))
+  
+  # load input data
+  processed_data <- input_tibble |>
+    # assign divisions
+    mutate(
+      # uppercase everything so it matches the keys
+      area_name_upper = toupper(area_name),
+      # assign divisions 
+      division = case_when(
+        area_name %in% new_england ~ "New England",
+        area_name %in% middle_atlantic ~ "Middle Atlantic",
+        area_name %in% east_north_central ~ "East North Central",
+        area_name %in% west_north_central ~ "West North Central",
+        area_name %in% south_atlantic ~ "South Atlantic",
+        area_name %in% east_south_central ~ "East South Central",
+        area_name %in% west_south_central ~ "West South Central",
+        area_name %in% mountain ~ "Mountain",
+        area_name %in% pacific ~ "Pacific",
+        TRUE ~ "ERROR"
+    )) |>
+    # get rid of the new upper field
+    select(-area_name_upper)
+    
+  # return output
+  return(processed_data)
+}
+```
+
+#### function for step 4, 5, and 6
+```{r}
+# create function to extract year and measurements
+process_data_step_4_5_6 <- function(input_tibble){
+  
+  # create county data
+  county_matching <- grep(pattern = ", \\w\\w", input_tibble$area_name) 
+  county <- input_tibble[county_matching,]
+  
+  # create non-county data
+  non_county <- input_tibble[-county_matching,]
+  
+  # apply county function
+  county_processed <- process_data_step_5(input_tibble = county)
+  
+  # apply non-county function
+  non_county_processed <- process_data_step_6(input_tibble = non_county)
+  
+  # return new dfs as a list
+  list(county = county_processed, non_county = non_county_processed)
+}
+
+# view results
+process_data_step_4_5_6(input_tibble = step_3_output)$county
+```
 
 
-### Creating wrapper function
+#### Wrapper function
+```{r}
+process_all_data <- function(file_path, input_col = "enrollment"){
+  
+  # load data
+  processed_data <- process_data_step_1_2(file_path = file_path, input_col = "enrollment") |>
+    # extract year and measurement
+    process_data_step_3() |>
+    # split data, determine state for non-county data, class for county data
+    process_data_step_4_5_6()
+  
+  # return results
+  return(processed_data)
+}
 
+# call function and output
+EDU01a_part <- process_all_data(file_path = "https://www4.stat.ncsu.edu/~online/datasets/EDU01a.csv", input_col = "enrollment")
+EDU01b_part <- process_all_data(file_path = "https://www4.stat.ncsu.edu/~online/datasets/EDU01b.csv", input_col = "enrollment")
+
+# QA results
+#final_data$county
+EDU01a_part$non_county
+
+```
 
 
 ### Combine two datasets as one object
 
 
 
+
 ## Writing a Generic Function for Summarizing
-
-
 
 ## Put Together
