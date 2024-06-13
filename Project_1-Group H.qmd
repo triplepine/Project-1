@@ -84,17 +84,10 @@ non_county <- non_county |>
 
 ### Write functions to do the both pieces
 
-
 ### Creating wrapper function
-
-
 
 ### Combine two datasets as one object
 
-
-
 ## Writing a Generic Function for Summarizing
-
-
 
 ## Put Together
