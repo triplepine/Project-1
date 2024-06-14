@@ -11,17 +11,17 @@ editor_options:
 ```{r}
 library(readr)
 library(tidyverse)
-library(lubridate)
+library(dplyr)
 
-# Step 1 through 3 - Read in one section of the data 
+# Step 1 - Read in one section of the data 
 EDU01a_part <- read_csv("EDU01a.csv") |>
    select(Area_name,STCOU,ends_with("D")) |>
    rename(area_name=Area_name) |>
-  # Covert into long format
+# Step 2 - Covert into long format
   pivot_longer(cols=3:12,
                names_to = "enrollment",
                values_to = "number") |>
-  # pull out the year and convert the year into a numeric value
+# Step 3 - pull out the year and convert the year into a numeric value
   # create a new variable with first 3 char and following 4 digits
   mutate(year = ifelse(as.numeric(substr(enrollment,8,9))>25,as.numeric(substr(enrollment,8,9))+1900,as.numeric(substr(enrollment,8,9))+2000),
         measurement = substr(enrollment,1,7)) |>
@@ -80,6 +80,7 @@ non_county <- non_county |>
   ))
 ```
 
+### Write functions to do the both pieces
 ### Functions for all data processing steps
 
 #### function for steps 1 & 2
@@ -88,7 +89,7 @@ non_county <- non_county |>
 process_data_step_1_2 <- function(file_path, input_col = "enrollment"){
   
   # load input data
-  processed_data <- read_csv(file_path) |>
+  step_1_2_output <- read_csv(file_path) |>
   
     # select specified columns
     select(Area_name, STCOU, ends_with("D")) |>
@@ -102,11 +103,11 @@ process_data_step_1_2 <- function(file_path, input_col = "enrollment"){
                  values_to = "number")
   
   # return output
-  return(processed_data)
+  return(step_1_2_output)
 }
-
+### Creating wrapper function
 # populate tibble with results
-step_1_2_output <- process_data_step_1_2("https://www4.stat.ncsu.edu/~online/datasets/EDU01b.csv", input_col = "enrollment")
+#step_1_2_output <- process_data_step_1_2("https://www4.stat.ncsu.edu/~online/datasets/EDU01b.csv", input_col = "enrollment")
 ```
 
 #### function for step 3
@@ -115,7 +116,7 @@ step_1_2_output <- process_data_step_1_2("https://www4.stat.ncsu.edu/~online/dat
 process_data_step_3 <- function(input_tibble){
   
   # load input data
-  processed_data <- input_tibble |>
+  step_3_output <- input_tibble |>
     
     # Extract the year and measurement
     mutate(
@@ -124,13 +125,11 @@ process_data_step_3 <- function(input_tibble){
       # grab measurement value from the first 7 characters
       measurement = substr(enrollment,1,7)
     )
-
   # return output
-  return(processed_data)
+  return(step_3_output)
 }
-
 # output data
-step_3_output <- process_data_step_3(input_tibble = step_1_2_output)
+#step_3_output <- process_data_step_3(input_tibble = step_1_2_output)
 ```
 
 #### function for step 5
@@ -148,6 +147,7 @@ process_data_step_5 <- function(input_tibble){
 }
 ```
 
+### Combine two datasets as one object
 #### function for step 6
 ```{r}
 # function to determine classification for NON-COUNTY data
@@ -194,15 +194,15 @@ process_data_step_6 <- function(input_tibble){
 #### function for step 4, 5, and 6
 ```{r}
 # create function to extract year and measurements
-process_data_step_4_5_6 <- function(input_tibble){
+process_data_step_4_5_6 <- function(step_3_output){
   
   # create county data
-  county_matching <- grep(pattern = ", \\w\\w", input_tibble$area_name) 
-  county <- input_tibble[county_matching,]
-  
+  county_matching <- grep(pattern = ", \\w\\w", step_3_output$area_name) 
+  county <- step_3_output[county_matching,]
+  return(county)
   # create non-county data
-  non_county <- input_tibble[-county_matching,]
-  
+  non_county <- step_3_output[-county_matching,]
+  return(non_county)
   # apply county function
   county_processed <- process_data_step_5(input_tibble = county)
   
@@ -210,42 +210,31 @@ process_data_step_4_5_6 <- function(input_tibble){
   non_county_processed <- process_data_step_6(input_tibble = non_county)
   
   # return new dfs as a list
-  list(county = county_processed, non_county = non_county_processed)
+  return(list(county = county_processed, non_county = non_county_processed))
 }
-
 # view results
-process_data_step_4_5_6(input_tibble = step_3_output)$county
+#process_data_step_4_5_6(input_tibble = step_3_output)$county
 ```
 
-<<<<<<< HEAD
-### Creating wrapper function
-
-### Combine two datasets as one object
-
-=======
+## Writing a Generic Function for Summarizing
 
 #### Wrapper function
 ```{r}
 process_all_data <- function(file_path, input_col = "enrollment"){
   
   # load data
-  processed_data <- process_data_step_1_2(file_path = file_path, input_col = "enrollment") |>
+  result <- process_data_step_1_2(file_path = file_path, input_col = "enrollment") |>
     # extract year and measurement
     process_data_step_3() |>
     # split data, determine state for non-county data, class for county data
     process_data_step_4_5_6()
   
   # return results
-  return(processed_data)
+  return(result)
 }
-
 # call function and output
 EDU01a_part <- process_all_data(file_path = "https://www4.stat.ncsu.edu/~online/datasets/EDU01a.csv", input_col = "enrollment")
 EDU01b_part <- process_all_data(file_path = "https://www4.stat.ncsu.edu/~online/datasets/EDU01b.csv", input_col = "enrollment")
-
-# QA results
-#final_data$county
-EDU01a_part$non_county
 
 ```
 
