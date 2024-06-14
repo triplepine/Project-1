@@ -9,6 +9,9 @@ editor_options:
 ## Data Processing
 
 ```{r}
+#| warning: FALSE
+#| message: FALSE
+
 library(readr)
 library(tidyverse)
 library(dplyr)
@@ -17,12 +20,11 @@ library(dplyr)
 EDU01a_part <- read_csv("EDU01a.csv") |>
    select(Area_name,STCOU,ends_with("D")) |>
    rename(area_name=Area_name) |>
-# Step 2 - Covert into long format
+  # Step 2 - Covert into long format
   pivot_longer(cols=3:12,
                names_to = "enrollment",
                values_to = "number") |>
-# Step 3 - pull out the year and convert the year into a numeric value
-  # create a new variable with first 3 char and following 4 digits
+  # Step 3 - pull out the year and convert the year into a numeric value, create a new variable with first 3 char and following 4 digits
   mutate(year = ifelse(as.numeric(substr(enrollment,8,9))>25,as.numeric(substr(enrollment,8,9))+1900,as.numeric(substr(enrollment,8,9))+2000),
         measurement = substr(enrollment,1,7)) |>
   collect()
@@ -80,11 +82,13 @@ non_county <- non_county |>
   ))
 ```
 
-### Write functions to do the both pieces
 ### Functions for all data processing steps
 
-#### function for steps 1 & 2
+#### Steps 1 & 2 function - format all data
 ```{r}
+#| warning: FALSE
+#| message: FALSE
+
 # create function with the file path and specified column as inputs
 process_data_step_1_2 <- function(file_path, input_col = "enrollment"){
   
@@ -105,13 +109,13 @@ process_data_step_1_2 <- function(file_path, input_col = "enrollment"){
   # return output
   return(step_1_2_output)
 }
-### Creating wrapper function
-# populate tibble with results
-#step_1_2_output <- process_data_step_1_2("https://www4.stat.ncsu.edu/~online/datasets/EDU01b.csv", input_col = "enrollment")
 ```
 
-#### function for step 3
+#### Step 3 function - extract year for all data
 ```{r}
+#| warning: FALSE
+#| message: FALSE
+
 # create function to extract year and measurements
 process_data_step_3 <- function(input_tibble){
   
@@ -128,28 +132,31 @@ process_data_step_3 <- function(input_tibble){
   # return output
   return(step_3_output)
 }
-# output data
-#step_3_output <- process_data_step_3(input_tibble = step_1_2_output)
 ```
 
-#### function for step 5
+#### Step 5 function - determine state for county data
 ```{r}
+#| warning: FALSE
+#| message: FALSE
+
 # function to determine state for COUNTY data
 process_data_step_5 <- function(input_tibble){
   
   # load input data
-  processed_data <- input_tibble |>
+  step_5_output <- input_tibble |>
     # create a new field with the state
     mutate(state = substr(area_name, nchar(county$area_name)-1, nchar(area_name)))
     
   # return output
-  return(processed_data)
+  return(step_5_output)
 }
 ```
 
-### Combine two datasets as one object
-#### function for step 6
+#### Step 6 function - determine division for non-county data
 ```{r}
+#| warning: FALSE
+#| message: FALSE
+
 # function to determine classification for NON-COUNTY data
 process_data_step_6 <- function(input_tibble){
   
@@ -165,7 +172,7 @@ process_data_step_6 <- function(input_tibble){
   pacific <- toupper(c("Alaska", "California", "Hawaii", "Oregon", "Washington"))
   
   # load input data
-  processed_data <- input_tibble |>
+  step_6_output <- input_tibble |>
     # assign divisions
     mutate(
       # uppercase everything so it matches the keys
@@ -187,38 +194,37 @@ process_data_step_6 <- function(input_tibble){
     select(-area_name_upper)
     
   # return output
-  return(processed_data)
+  return(step_6_output)
 }
 ```
 
-#### function for step 4, 5, and 6
+#### Step 4, 5, and 6 function - combine previous functions
 ```{r}
+#| warning: FALSE
+#| message: FALSE
+
 # create function to extract year and measurements
-process_data_step_4_5_6 <- function(step_3_output){
+process_data_step_4_5_6 <- function(input_tibble){
   
   # create county data
-  county_matching <- grep(pattern = ", \\w\\w", step_3_output$area_name) 
-  county <- step_3_output[county_matching,]
-  return(county)
+  county_matching <- grep(pattern = ", \\w\\w", input_tibble$area_name) 
+  county <- input_tibble[county_matching,]
+
   # create non-county data
-  non_county <- step_3_output[-county_matching,]
-  return(non_county)
+  non_county <- input_tibble[-county_matching,]
+
   # apply county function
   county_processed <- process_data_step_5(input_tibble = county)
   
   # apply non-county function
   non_county_processed <- process_data_step_6(input_tibble = non_county)
   
-  # return new dfs as a list
+  # return new tibbles as a list
   return(list(county = county_processed, non_county = non_county_processed))
 }
-# view results
-#process_data_step_4_5_6(input_tibble = step_3_output)$county
 ```
 
-## Writing a Generic Function for Summarizing
-
-#### Wrapper function
+#### Wrapper function - run all preprocessing steps
 ```{r}
 process_all_data <- function(file_path, input_col = "enrollment"){
   
@@ -235,16 +241,39 @@ process_all_data <- function(file_path, input_col = "enrollment"){
 # call function and output
 EDU01a_part <- process_all_data(file_path = "https://www4.stat.ncsu.edu/~online/datasets/EDU01a.csv", input_col = "enrollment")
 EDU01b_part <- process_all_data(file_path = "https://www4.stat.ncsu.edu/~online/datasets/EDU01b.csv", input_col = "enrollment")
-
 ```
 
+#### Combine data function
+```{r}
+#| warning: FALSE
+#| message: FALSE
 
-### Combine two datasets as one object
+# create function to combine data
+combine_processed_data <- function(input_tibble1, input_tibble2){
+  
+  # combine county data
+  combined_county <- bind_rows(input_tibble1$county, input_tibble2$county)
+  
+  # combine non-county data
+  combined_non_county <- bind_rows(input_tibble1$non_county, input_tibble2$non_county)
+  
+  # combine to a list
+  combined_data <- list(county = combined_county, non_county = combined_non_county)
+  
+  # return results
+  return(combined_data)
+}
 
+# call function and combine data
+combined_processed_data <- combine_processed_data(EDU01a_part, EDU01b_part)
 
+# print results
+combined_processed_data$county
+combined_processed_data$non_county
+```
 
-
->>>>>>> db46a65e537d303a5cf469468e9525a124716662
 ## Writing a Generic Function for Summarizing
 
 ## Put Together
+
+
