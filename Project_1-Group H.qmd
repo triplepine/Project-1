@@ -209,9 +209,14 @@ process_data_step_4_5_6 <- function(input_tibble){
   # create county data
   county_matching <- grep(pattern = ", \\w\\w", input_tibble$area_name) 
   county <- input_tibble[county_matching,]
-
+   
   # create non-county data
   non_county <- input_tibble[-county_matching,]
+  # Step 4 - add a class to the county_only data called county
+  
+  class(county) <-c("county",class(county))
+  # Step 4 - add a class to the non-county level data called state
+  class(non_county) <-c("state",class(non_county))
 
   # apply county function
   county_processed <- process_data_step_5(input_tibble = county)
@@ -273,10 +278,87 @@ combined_processed_data <- combine_processed_data(EDU01a_part, EDU01b_part)
 # print results
 combined_processed_data$county
 combined_processed_data$non_county
+str(county)
 ```
 
 ## Writing a Generic Function for Summarizing
 
-## Put Together
+```{r}
+# Function to plot the mean value of the statistic
+library(dplyr)
+library(ggplot2)
+
+# create function for plotting for state
+plot.state <- function(df, var_name = "number") {
+  # Calculate the mean for each division and year
+  summarize_df <- df |>
+    filter(division != "ERROR") |> # Remove observations with "ERROR" in Division
+    group_by(division, year) |>  #across the years for each Division
+    summarize(mean_value = mean(get(var_name), na.rm = TRUE), .groups = 'drop')
+
+  # Create the plot
+  p <- ggplot(summarize_df, aes(x = year, y = mean_value, color = division, group = division)) +
+    geom_line() +
+    labs(
+      title = paste("Mean", var_name, "by Year and Division"),
+      x = "Year",
+      y = paste("Mean", var_name)
+    ) +
+    theme_minimal()
+  
+  return(p)
+}
+
+  # test the plot
+  plot.state(combined_processed_data[[2]],var_name="number")
+
+```
+
+
+```{r}
+# create function for plotting county
+plot.county <- function(df, state_of_interest = "AL", var_name = "number", top_or_bottom = "top", num_counties = 5) {
+  # Filter the data to only include the specified state
+  state_data <- df |>
+    filter(state == !!state_of_interest)
+  
+  # Calculate the overall mean of the statistic for each Area_name and sort
+  area_means <- state_data |>
+    group_by(area_name) |>
+    summarize(mean_value = mean(.data[[var_name]], na.rm = TRUE), .groups = 'drop') |>
+    arrange(if (top_or_bottom == "top") desc(mean_value) else mean_value)
+  
+  # Obtain the top or bottom x number of Area_names
+  selected_areas <- area_means |>
+    slice_head(n = num_counties) |>
+    pull(area_name)
+  
+  # Filter the data for the specified state and selected Area_names
+  plot_data <- state_data |>
+    filter(area_name %in% selected_areas)
+  
+  # Create the plot
+  p <- ggplot(plot_data, aes(x = year, y = .data[[var_name]], color = area_name, group = area_name)) +
+    geom_line() +
+    labs(
+      title = paste("Enrollment by Year for Top/Bottom", num_counties, "Counties in", state_of_interest),
+      x = "Year",
+      y = paste("Enrollment")
+    ) +
+    theme_minimal()
+  
+  return(p)
+}
+
+# Test plot
+
+plot.county(combined_processed_data[[1]],state_of_interest = "AL", var_name = "number", top_or_bottom = "top", num_counties = 5)
+```
+
+## Put it Together
+```{r}
+```
+
+
 
 
