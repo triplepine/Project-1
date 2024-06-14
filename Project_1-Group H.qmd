@@ -6,8 +6,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-## Data Processing
-
+## Load Libraries
 ```{r}
 #| warning: FALSE
 #| message: FALSE
@@ -15,15 +14,25 @@ editor_options:
 library(readr)
 library(tidyverse)
 library(dplyr)
+library(ggplot2)
+```
+
+## Data Processing
+### Processing steps
+```{r}
+#| warning: FALSE
+#| message: FALSE
 
 # Step 1 - Read in one section of the data 
 EDU01a_part <- read_csv("EDU01a.csv") |>
    select(Area_name,STCOU,ends_with("D")) |>
    rename(area_name=Area_name) |>
+  
   # Step 2 - Covert into long format
   pivot_longer(cols=3:12,
                names_to = "enrollment",
                values_to = "number") |>
+  
   # Step 3 - pull out the year and convert the year into a numeric value, create a new variable with first 3 char and following 4 digits
   mutate(year = ifelse(as.numeric(substr(enrollment,8,9))>25,as.numeric(substr(enrollment,8,9))+1900,as.numeric(substr(enrollment,8,9))+2000),
         measurement = substr(enrollment,1,7)) |>
@@ -83,11 +92,14 @@ non_county <- non_county |>
 ```
 
 ### Functions for all data processing steps
-
 #### Steps 1 & 2 function - format all data
 ```{r}
 #| warning: FALSE
 #| message: FALSE
+
+library(readr)
+library(tidyverse)
+library(dplyr)
 
 # create function with the file path and specified column as inputs
 process_data_step_1_2 <- function(file_path, input_col = "enrollment"){
@@ -102,9 +114,7 @@ process_data_step_1_2 <- function(file_path, input_col = "enrollment"){
     rename(area_name = Area_name) |>
     
     # put the columns ending in D in long format, under "enrollment"
-    pivot_longer(cols = 3:12,
-                 names_to = input_col,
-                 values_to = "number")
+    pivot_longer(cols = 3:12, names_to = input_col, values_to = "number")
   
   # return output
   return(step_1_2_output)
@@ -145,7 +155,7 @@ process_data_step_5 <- function(input_tibble){
   # load input data
   step_5_output <- input_tibble |>
     # create a new field with the state
-    mutate(state = substr(area_name, nchar(county$area_name)-1, nchar(area_name)))
+    mutate(state = substr(area_name, nchar(area_name)-1, nchar(area_name)))
     
   # return output
   return(step_5_output)
@@ -212,16 +222,17 @@ process_data_step_4_5_6 <- function(input_tibble){
    
   # create non-county data
   non_county <- input_tibble[-county_matching,]
-  # Step 4 - add a class to the county_only data called county
   
-  class(county) <-c("county",class(county))
+  # Step 4 - add a class to the county_only data called county
+  class(county) <- c("county",class(county))
+  
   # Step 4 - add a class to the non-county level data called state
-  class(non_county) <-c("state",class(non_county))
+  class(non_county) <- c("state",class(non_county))
 
-  # apply county function
+  # Step 5 - apply county function
   county_processed <- process_data_step_5(input_tibble = county)
   
-  # apply non-county function
+  # Step 6 - apply non-county function
   non_county_processed <- process_data_step_6(input_tibble = non_county)
   
   # return new tibbles as a list
@@ -238,17 +249,20 @@ process_all_data <- function(file_path, input_col = "enrollment"){
   
   # load data
   result <- process_data_step_1_2(file_path = file_path, input_col = "enrollment") |>
+    
     # extract year and measurement
     process_data_step_3() |>
+    
     # split data, determine state for non-county data, class for county data
     process_data_step_4_5_6()
   
   # return results
   return(result)
 }
+
 # call function and output
-EDU01a_part <- process_all_data(file_path = "https://www4.stat.ncsu.edu/~online/datasets/EDU01a.csv", input_col = "enrollment")
-EDU01b_part <- process_all_data(file_path = "https://www4.stat.ncsu.edu/~online/datasets/EDU01b.csv", input_col = "enrollment")
+EDU01a_part <- process_all_data(file_path = "EDU01a.csv", input_col = "enrollment")
+EDU01b_part <- process_all_data(file_path = "EDU01b.csv", input_col = "enrollment")
 ```
 
 #### Combine data function
@@ -276,24 +290,28 @@ combine_processed_data <- function(input_tibble1, input_tibble2){
 combined_processed_data <- combine_processed_data(EDU01a_part, EDU01b_part)
 
 # print results
-combined_processed_data$county
-combined_processed_data$non_county
-str(county)
+str(combined_processed_data)
 ```
 
-## Writing a Generic Function for Summarizing
-
+## Generic Functions for Summarizing
+#### State plot function
 ```{r}
-# Function to plot the mean value of the statistic
-library(dplyr)
-library(ggplot2)
+#| warning: FALSE
+#| message: FALSE
 
 # create function for plotting for state
-plot.state <- function(df, var_name = "number") {
+plot.state <- function(df, var_name = "number"){
+  
   # Calculate the mean for each division and year
   summarize_df <- df |>
-    filter(division != "ERROR") |> # Remove observations with "ERROR" in Division
-    group_by(division, year) |>  #across the years for each Division
+    
+    # Remove observations with "ERROR" in Division
+    filter(division != "ERROR") |> 
+    
+    # group by division and yer 
+    group_by(division, year) |> 
+    
+    # calculate the mean across the years for each Division
     summarize(mean_value = mean(get(var_name), na.rm = TRUE), .groups = 'drop')
 
   # Create the plot
@@ -306,19 +324,34 @@ plot.state <- function(df, var_name = "number") {
     ) +
     theme_minimal()
   
+  # return results
   return(p)
 }
 
-  # test the plot
-  plot.state(combined_processed_data[[2]],var_name="number")
-
+# test the plot
+plot.state(combined_processed_data[[2]], var_name = "number")
 ```
 
-
+#### County plot function
 ```{r}
+#| warning: FALSE
+#| message: FALSE
+
 # create function for plotting county
-plot.county <- function(df, state_of_interest = "AL", var_name = "number", top_or_bottom = "top", num_counties = 5) {
-  # Filter the data to only include the specified state
+plot.county <- function(df, state_of_interest = "AL", var_name = "number", top_or_bottom = "top", num_counties = 5){
+  
+  # case inputs
+  top_or_bottom <- tolower(top_or_bottom)
+  state_of_interest <- toupper(state_of_interest)
+  var_name <- tolower(var_name)
+  
+  # warning on invalid inputs
+  if (!(top_or_bottom %in% c("top", "bottom"))) {
+    warning("Invalid value for 'top_or_bottom'. Defaulting to 'top'.")
+    top_or_bottom <- "top"
+  }
+  
+  # Filter the data to only include the specified state without quotes
   state_data <- df |>
     filter(state == !!state_of_interest)
   
@@ -347,17 +380,98 @@ plot.county <- function(df, state_of_interest = "AL", var_name = "number", top_o
     ) +
     theme_minimal()
   
+  # return results
   return(p)
 }
 
 # Test plot
-
-plot.county(combined_processed_data[[1]],state_of_interest = "AL", var_name = "number", top_or_bottom = "top", num_counties = 5)
+plot.county(combined_processed_data[[1]],
+            state_of_interest = "AL", 
+            var_name = "number", 
+            top_or_bottom = "top", 
+            num_counties = 10)
 ```
 
-## Put it Together
+## Put everything together
+### Plots for previous data
 ```{r}
+#| warning: FALSE
+#| message: FALSE
+
+# preprocess data
+EDU01a_part <- process_all_data(file_path = "EDU01a.csv", input_col = "enrollment")
+EDU01b_part <- process_all_data(file_path = "EDU01b.csv", input_col = "enrollment")
+
+# combine processed data
+combined_processed_data <- combine_processed_data(EDU01a_part, EDU01b_part)
+
+# plot state
+plot.state(combined_processed_data$non_county, var_name = "number")
+
+# plot.county state NC top 20
+plot.county(combined_processed_data$county,
+            state_of_interest = "NC", 
+            var_name = "number", 
+            top_or_bottom = "top", 
+            num_counties = 20)
+
+# plot.county state SC bottom 7
+plot.county(combined_processed_data$county,
+            state_of_interest = "NC", 
+            var_name = "number", 
+            top_or_bottom = "bottom", 
+            num_counties = 7)
+
+# plot.county state defaults
+plot.county(combined_processed_data$county)
+
+# plot.county state PA top 8
+plot.county(
+  combined_processed_data$county,
+  state_of_interest = "PA", 
+  var_name = "number", 
+  top_or_bottom = "bottom", 
+  num_counties = 8
+)
 ```
+
+### Plots for new data
+```{r}
+#| warning: FALSE
+#| message: FALSE
+
+# preprocess data
+PST01a_part <- process_all_data(file_path = "https://www4.stat.ncsu.edu/~online/datasets/PST01a.csv", input_col = "enrollment")
+PST01b_part <- process_all_data(file_path = "https://www4.stat.ncsu.edu/~online/datasets/PST01b.csv", input_col = "enrollment")
+PST01c_part <- process_all_data(file_path = "https://www4.stat.ncsu.edu/~online/datasets/PST01c.csv", input_col = "enrollment")
+PST01d_part <- process_all_data(file_path = "https://www4.stat.ncsu.edu/~online/datasets/PST01d.csv", input_col = "enrollment")
+
+# combine processed data
+combined_processed_data <- combine_processed_data(PST01a_part, PST01b_part)
+combined_processed_data <- combine_processed_data(combined_processed_data, PST01c_part)
+combined_processed_data <- combine_processed_data(combined_processed_data, PST01d_part)
+
+# plot state
+plot.state(combined_processed_data$non_county, var_name = "number")
+
+# plot.county state CA top 15
+plot.county(combined_processed_data$county,
+            state_of_interest = "CA", 
+            var_name = "number", 
+            top_or_bottom = "top", 
+            num_counties = 15)
+
+
+```
+
+
+
+
+
+
+
+
+
 
 
 
