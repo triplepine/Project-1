@@ -226,6 +226,9 @@ process_data_step_4_5_6 <- function(input_tibble){
 
 #### Wrapper function - run all preprocessing steps
 ```{r}
+#| warning: FALSE
+#| message: FALSE
+
 process_all_data <- function(file_path, input_col = "enrollment"){
   
   # load data
