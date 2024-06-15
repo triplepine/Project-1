@@ -1,12 +1,20 @@
 ---
 title: "Project 1 - Group H"
-format: html
+format: 
+  html:
+    embed-resources: true
 editor: visual
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
-## Load Libraries
+## notes (delete before submission) @@@@@@@@@@@@@@@@@@@
+> Problem resolutions
+> - picture problem was resolved by using "embed-resources: true" rather than creating png files
+> - use "quarto render" in terminal
+
+## Setup environment
+
 ```{r}
 #| warning: FALSE
 #| message: FALSE
@@ -15,10 +23,13 @@ library(readr)
 library(tidyverse)
 library(dplyr)
 library(ggplot2)
+
 ```
 
 ## Data Processing
+
 ### Processing steps
+
 ```{r}
 #| warning: FALSE
 #| message: FALSE
@@ -92,14 +103,12 @@ non_county <- non_county |>
 ```
 
 ### Functions for all data processing steps
+
 #### Steps 1 & 2 function - format all data
+
 ```{r}
 #| warning: FALSE
 #| message: FALSE
-
-library(readr)
-library(tidyverse)
-library(dplyr)
 
 # create function with the file path and specified column as inputs
 process_data_step_1_2 <- function(file_path, input_col = "enrollment"){
@@ -122,6 +131,7 @@ process_data_step_1_2 <- function(file_path, input_col = "enrollment"){
 ```
 
 #### Step 3 function - extract year for all data
+
 ```{r}
 #| warning: FALSE
 #| message: FALSE
@@ -145,6 +155,7 @@ process_data_step_3 <- function(input_tibble){
 ```
 
 #### Step 5 function - determine state for county data
+
 ```{r}
 #| warning: FALSE
 #| message: FALSE
@@ -163,6 +174,7 @@ process_data_step_5 <- function(input_tibble){
 ```
 
 #### Step 6 function - determine division for non-county data
+
 ```{r}
 #| warning: FALSE
 #| message: FALSE
@@ -209,6 +221,7 @@ process_data_step_6 <- function(input_tibble){
 ```
 
 #### Step 4, 5, and 6 function - combine previous functions
+
 ```{r}
 #| warning: FALSE
 #| message: FALSE
@@ -241,6 +254,7 @@ process_data_step_4_5_6 <- function(input_tibble){
 ```
 
 #### Wrapper function - run all preprocessing steps
+
 ```{r}
 #| warning: FALSE
 #| message: FALSE
@@ -266,6 +280,7 @@ EDU01b_part <- process_all_data(file_path = "EDU01b.csv", input_col = "enrollmen
 ```
 
 #### Combine data function
+
 ```{r}
 #| warning: FALSE
 #| message: FALSE
@@ -294,7 +309,9 @@ str(combined_processed_data)
 ```
 
 ## Generic Functions for Summarizing
+
 #### State plot function
+
 ```{r}
 #| warning: FALSE
 #| message: FALSE
@@ -333,6 +350,7 @@ plot.state(combined_processed_data[[2]], var_name = "number")
 ```
 
 #### County plot function
+
 ```{r}
 #| warning: FALSE
 #| message: FALSE
@@ -393,7 +411,9 @@ plot.county(combined_processed_data[[1]],
 ```
 
 ## Put everything together
+
 ### Plots for previous data
+
 ```{r}
 #| warning: FALSE
 #| message: FALSE
@@ -436,6 +456,7 @@ plot.county(
 ```
 
 ### Plots for new data
+
 ```{r}
 #| warning: FALSE
 #| message: FALSE
@@ -463,16 +484,3 @@ plot.county(combined_processed_data$county,
 
 
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
