@@ -4,21 +4,14 @@
     "href": "Project_1-Group H.html",
     "title": "Project 1 - Group H",
     "section": "",
-    "text": "Problem resolutions - picture problem was resolved by using “embed-resources: true” rather than creating png files - use “quarto render” in terminal"
-  },
-  {
-    "objectID": "Project_1-Group H.html#notes-delete-before-submission",
-    "href": "Project_1-Group H.html#notes-delete-before-submission",
-    "title": "Project 1 - Group H",
-    "section": "",
-    "text": "Problem resolutions - picture problem was resolved by using “embed-resources: true” rather than creating png files - use “quarto render” in terminal"
+    "text": "library(readr)\nlibrary(tidyverse)\nlibrary(dplyr)\nlibrary(ggplot2)\nlibrary(tools)"
   },
   {
     "objectID": "Project_1-Group H.html#setup-environment",
     "href": "Project_1-Group H.html#setup-environment",
     "title": "Project 1 - Group H",
-    "section": "Setup environment",
-    "text": "Setup environment\n\nlibrary(readr)\nlibrary(tidyverse)\nlibrary(dplyr)\nlibrary(ggplot2)\nlibrary(tools)"
+    "section": "",
+    "text": "library(readr)\nlibrary(tidyverse)\nlibrary(dplyr)\nlibrary(ggplot2)\nlibrary(tools)"
   },
   {
     "objectID": "Project_1-Group H.html#data-processing",

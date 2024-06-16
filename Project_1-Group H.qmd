@@ -8,11 +8,6 @@ editor_options:
   chunk_output_type: inline
 ---
 
-## notes (delete before submission) @@@@@@@@@@@@@@@@@@@
-> Problem resolutions
-> - picture problem was resolved by using "embed-resources: true" rather than creating png files
-> - use "quarto render" in terminal
-
 ## Setup environment
 
 ```{r}
