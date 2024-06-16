@@ -23,6 +23,7 @@ library(readr)
 library(tidyverse)
 library(dplyr)
 library(ggplot2)
+library(tools)
 
 ```
 
@@ -86,7 +87,7 @@ west_south_central <- toupper(west_south_central)
 mountain <- toupper(mountain)
 pacific <- toupper(pacific)
 
-# Step 6 -Assuming non_county is your data frame, convert the area_name column to uppercase
+# Step 6 - Create a new variable called "division"
 non_county <- non_county |>
   mutate(division = case_when(
     area_name %in% new_england ~ "New England",
@@ -335,9 +336,9 @@ plot.state <- function(df, var_name = "number"){
   p <- ggplot(summarize_df, aes(x = year, y = mean_value, color = division, group = division)) +
     geom_line() +
     labs(
-      title = paste("Mean", var_name, "by Year and Division"),
+      title = paste("Mean", toTitleCase(var_name), "by Year and Division"),
       x = "Year",
-      y = paste("Mean", var_name)
+      y = paste("Mean", toTitleCase(var_name))
     ) +
     theme_minimal()
   
@@ -392,7 +393,7 @@ plot.county <- function(df, state_of_interest = "AL", var_name = "number", top_o
   p <- ggplot(plot_data, aes(x = year, y = .data[[var_name]], color = area_name, group = area_name)) +
     geom_line() +
     labs(
-      title = paste("Enrollment by Year for Top/Bottom", num_counties, "Counties in", state_of_interest),
+      title = paste("Enrollment by Year for", toTitleCase(top_or_bottom), num_counties, "Counties in", state_of_interest),
       x = "Year",
       y = paste("Enrollment")
     ) +
@@ -450,7 +451,7 @@ plot.county(
   combined_processed_data$county,
   state_of_interest = "PA", 
   var_name = "number", 
-  top_or_bottom = "bottom", 
+  top_or_bottom = "top", 
   num_counties = 8
 )
 ```
