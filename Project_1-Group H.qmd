@@ -345,9 +345,9 @@ plot.state <- function(df, values_column_name = "value"){
   p <- ggplot(summarize_df, aes(x = year, y = mean_value, color = division, group = division)) +
     geom_line() +
     labs(
-      title = paste(values_column_name, "mean by year and Division"),
+      title = paste(values_column_name, "Mean by Year and Division"),
       x = "Year",
-      y = paste(values_column_name, "mean")
+      y = paste(values_column_name, "Mean")
     ) +
     theme_minimal()
   
@@ -402,7 +402,7 @@ plot.county <- function(df, state_of_interest = "AL", values_column_name = "valu
   p <- ggplot(plot_data, aes(x = year, y = .data[[values_column_name]], color = area_name, group = area_name)) +
     geom_line() +
     labs(
-      title = paste(values_column_name, "total by year for", top_or_bottom, num_counties, "counties in", state_of_interest),
+      title = paste(values_column_name, "Total by Year for", toTitleCase(top_or_bottom), num_counties, "Counties in", state_of_interest),
       x = "Year",
       y = paste(values_column_name)
     ) +
